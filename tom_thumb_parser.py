@@ -2,6 +2,7 @@
 import sys
 import os
 import logging
+import json
 
 # Third parties imports
 from requests import get
@@ -25,7 +26,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 stream_handler = logging.StreamHandler()
-stream_handler.setLevel(logging.INFO)
+stream_handler.setLevel(logging.DEBUG)
 
 logger.addHandler(stream_handler)
 
@@ -43,7 +44,6 @@ class TomThumbParser(object):
 
     def parser(self, input_dict, url=base_url, index_key=default_key):
         """
-
         :param input_dict: Input dictionary to work with.
         :type input_dict: dict
         :param url: URL of the page
@@ -64,7 +64,15 @@ class TomThumbParser(object):
 
             html_content = html.fromstring(response.content)
 
-            test_query = html_content.xpath(input_dict[index_key][test_query_key])
+            try:
+                test_query = html_content.xpath(input_dict[index_key][test_query_key])
+            except KeyError as key_error:
+                # Handle the case where the input file has not been tampered.
+                # We consider this is the end of the input file.
+                logger.debug(key_error)
+                sys.exit(0)
+                # TODO: return False
+
 
             logger.debug(test_query)
             logger.debug(input_dict[index_key][test_result_key])
@@ -92,16 +100,37 @@ class TomThumbParser(object):
             sys.exit(0)
 
 
-if __name__ == '__main__':
-    try:
-        response = get(json_url)
-    except RequestException as requests_exception:  # Generic Requests exception handling
-        logger.error(requests_exception)
-        sys.exit(0)
+def load_json_file(test_file_name=None):
+    """
+    Load the input json file. If no local file name is provided, the URL specified in the test's Google Doc is used.
+    :param test_file_name: Test file name, the file must be in current working directory.
+    :type test_file_name: basestring
+    :return: dict
+    """
+    if test_file_name:
+        try:
+            with open(os.path.join(os.getcwd(), test_file_name), encoding='utf-8') as file:
+                data = json.load(file)
+        except IOError as io_error:
+            logger.error(io_error)
+            sys.exit(0)
+        return data
+    else:
+        try:
+            response = get(json_url)
+        except RequestException as requests_exception:  # Generic Requests exception handling
+            logger.error(requests_exception)
+            sys.exit(0)
+        return response.json()
 
-    input_dict = response.json()
+
+if __name__ == '__main__':
+
+    input_dict = load_json_file("valid.json")
 
     TomThumbParser(input_dict)
+
+
 
 
 
