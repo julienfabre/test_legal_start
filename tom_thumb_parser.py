@@ -41,7 +41,7 @@ logger.addHandler(stream_handler)
 class TomThumbParser(object):
     """
     Tom Thumb Parser class.
-    Stores the current page and a boolean (indicating a tampered input file) as class attributes.
+    Stores the current page and a boolean (used to stop the recursive parsing) as class attributes.
     """
 
     def __init__(self):
@@ -91,7 +91,7 @@ class TomThumbParser(object):
 
             xpath_button = html_content.xpath(input_dict[index_key][button_key])
 
-            hyperlink = xpath_button[0].get("href")  # Acessing the button's hyperlink.
+            hyperlink = xpath_button[0].get("href")  # Accessing the button's hyperlink.
 
             # Using lstrip to remove a potential leading slash.
             next_url = os.path.join(base_url, hyperlink.lstrip("/"))
